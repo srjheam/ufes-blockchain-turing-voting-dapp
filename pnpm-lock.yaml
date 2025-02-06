@@ -24,12 +24,6 @@ importers:
       '@eslint/eslintrc':
         specifier: ^3
         version: 3.2.0
-      '@nomicfoundation/hardhat-chai-matchers':
-        specifier: ^2.0.8
-        version: 2.0.8(@nomicfoundation/hardhat-ethers@3.0.8(ethers@6.13.5)(hardhat@2.22.18(ts-node@10.9.2(@types/node@20.17.16)(typescript@5.7.3))(typescript@5.7.3)))(chai@4.5.0)(ethers@6.13.5)(hardhat@2.22.18(ts-node@10.9.2(@types/node@20.17.16)(typescript@5.7.3))(typescript@5.7.3))
-      '@nomicfoundation/hardhat-ethers':
-        specifier: ^3.0.8
-        version: 3.0.8(ethers@6.13.5)(hardhat@2.22.18(ts-node@10.9.2(@types/node@20.17.16)(typescript@5.7.3))(typescript@5.7.3))
       '@nomicfoundation/hardhat-ignition':
         specifier: ^0.15.9
         version: 0.15.9(@nomicfoundation/hardhat-verify@2.0.12(hardhat@2.22.18(ts-node@10.9.2(@types/node@20.17.16)(typescript@5.7.3))(typescript@5.7.3)))(hardhat@2.22.18(ts-node@10.9.2(@types/node@20.17.16)(typescript@5.7.3))(typescript@5.7.3))
@@ -45,6 +39,9 @@ importers:
       '@nomicfoundation/hardhat-viem':
         specifier: ^2.0.6
         version: 2.0.6(hardhat@2.22.18(ts-node@10.9.2(@types/node@20.17.16)(typescript@5.7.3))(typescript@5.7.3))(typescript@5.7.3)(viem@2.22.17(typescript@5.7.3))
+      '@types/chai':
+        specifier: ^4.2.0
+        version: 4.3.20
       '@types/node':
         specifier: ^20
         version: 20.17.16

@@ -1,34 +1,40 @@
 import { expect } from "chai";
 import hre from "hardhat";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
-import { parseEther, zeroAddress } from "viem";
+import { parseEther, zeroAddress, } from "viem";
+import ERC20ABI from "@openzeppelin/contracts/build/contracts/ERC20.json"  with { type: "json" };
 
 describe("Turing", function () {
   async function deployTuringFixture() {
-    const [owner, professor, candidate1, candidate2] =
-      await hre.ethers.getSigners();
+    const [owner, professor, candidate1, candidate2] = await hre.viem.getWalletClients();
 
     const candidates = [
       {
-        signer: candidate1,
+        client: candidate1,
+        address: candidate1.account.address,
         codename: "candidate1",
       },
       {
-        signer: candidate2,
+        client: candidate2,
+        address: candidate2.account.address,
         codename: "candidate2",
       },
     ].sort((a, b) =>
-      a.signer.address
-        .toLowerCase()
-        .localeCompare(b.signer.address.toLowerCase())
+      a.address.toLowerCase().localeCompare(b.address.toLowerCase())
     );
 
-    const Turing = await hre.ethers.getContractFactory("Turing");
-    const turing = await Turing.deploy(
-      professor.address,
-      candidates.map(({ signer }) => signer.address),
-      candidates.map(({ codename }) => codename)
-    );
+    const turing = await hre.viem.deployContract("Turing", [
+      professor.account.address,
+      candidates.map(({ address }) => address),
+      candidates.map(({ codename }) => codename),
+    ]);
+
+    console.log("===================================");
+    console.log("Turing deployed to:", turing.address);
+    console.log("Owner:", owner.account.address);
+    console.log("Professor:", professor.account.address);
+    console.log("Candidates:", candidates.map(({ address, codename }) => `${codename} (${address})`).join(", "));
+    console.log("===================================");
 
     return { turing, owner, professor, candidates };
   }
@@ -36,75 +42,72 @@ describe("Turing", function () {
   describe("Deployment", function () {
     it("Should set the right professor", async function () {
       const { turing, professor } = await loadFixture(deployTuringFixture);
-      expect(await turing.professor()).to.equal(professor.address);
+
+      const actualProfessor = await turing.read.professor();
+      
+      expect(actualProfessor.toLowerCase()).to.equal(professor.account.address.toLowerCase());
     });
 
     it("Should initialize voting as open", async function () {
       const { turing } = await loadFixture(deployTuringFixture);
-      expect(await turing.votingOpen()).to.be.true;
+      expect(await turing.read.votingOpen()).to.be.true;
     });
 
     it("Should reject empty candidates list", async function () {
-      const [ professor ] = await hre.ethers.getSigners();
+      const walletClients = await hre.viem.getWalletClients();
+      const [professor] = walletClients;
 
-      const Turing = await hre.ethers.getContractFactory("Turing");
       await expect(
-        Turing.deploy(professor.address, [], [])
-      ).to.be.revertedWith("Candidates list cannot be empty");
+        hre.viem.deployContract("Turing", [
+          professor.account.address, 
+          [], 
+          []
+        ])
+      ).to.be.rejectedWith("Candidates list cannot be empty");
     });
 
     it("Should reject mismatched addresses and codenames length", async function () {
-      const [ professor, candidate1 ] = await hre.ethers.getSigners();
-      
-      const Turing = await hre.ethers.getContractFactory("Turing");
+      const walletClients = await hre.viem.getWalletClients();
+      const [professor, candidate1] = walletClients;
+
       await expect(
-        Turing.deploy(
-          professor.address,
-          [candidate1.address],
-          ["candidate1", "candidate2"]
-        )
-      ).to.be.revertedWith("Candidates input length mismatch");
+        hre.viem.deployContract("Turing", [
+          professor.account.address,
+          [candidate1.account.address],
+          ["candidate1", "candidate2"],
+        ])
+      ).to.be.rejectedWith("Candidates input length mismatch");
     });
 
     it("Should reject duplicate codenames", async function () {
-      const [ professor, candidate1, candidate2 ] = await hre.ethers.getSigners();
+      const walletClients = await hre.viem.getWalletClients();
+      const [professor, candidate1, candidate2] = walletClients;
 
-      const Turing = await hre.ethers.getContractFactory("Turing");
       await expect(
-        Turing.deploy(
-          professor.address,
-          [candidate1.address, candidate2.address],
-          ["same_codename", "same_codename"]
-        )
-      ).to.be.revertedWith("Duplicate codename");
+        hre.viem.deployContract("Turing", [
+          professor.account.address,
+          [candidate1.account.address, candidate2.account.address],
+          ["same_codename", "same_codename"],
+        ])
+      ).to.be.rejectedWith("Duplicate codename");
     });
   });
 
   describe("Token Issuance", function () {
     it("Should allow owner to issue tokens", async function () {
-      const { turing, owner, candidates } = await loadFixture(
-        deployTuringFixture
-      );
+      const { turing, owner, candidates } = await loadFixture(deployTuringFixture);
       const amount = parseEther("1");
 
-      await turing.connect(owner).issueToken(candidates[0].codename, amount);
-      expect(await turing.balanceOf(candidates[0].signer.address)).to.equal(
-        amount
-      );
+      await turing.write.issueToken([candidates[0].codename, amount], { account: owner.account });
+      expect(await turing.read.balanceOf([candidates[0].address])).to.equal(amount);
     });
 
     it("Should allow professor to issue tokens", async function () {
-      const { turing, professor, candidates } = await loadFixture(
-        deployTuringFixture
-      );
+      const { turing, professor, candidates } = await loadFixture(deployTuringFixture);
       const amount = parseEther("1");
 
-      await turing
-        .connect(professor)
-        .issueToken(candidates[0].codename, amount);
-      expect(await turing.balanceOf(candidates[0].signer.address)).to.equal(
-        amount
-      );
+      await turing.write.issueToken([candidates[0].codename, amount], { account: professor.account });
+      expect(await turing.read.balanceOf([candidates[0].address])).to.equal(amount);
     });
 
     it("Should reject non-owner/non-professor issuance", async function () {
@@ -112,12 +115,8 @@ describe("Turing", function () {
       const amount = parseEther("1");
 
       await expect(
-        turing
-          .connect(candidates[0].signer)
-          .issueToken(candidates[1].codename, amount)
-      ).to.be.revertedWith(
-        "Only the contract owner or the professor can issue tokens"
-      );
+        turing.write.issueToken([candidates[1].codename, amount], { account: candidates[0].client.account })
+      ).to.be.rejectedWith("Only the contract owner or the professor can issue tokens");
     });
 
     it("Should reject token issuance with invalid codename", async function () {
@@ -125,27 +124,41 @@ describe("Turing", function () {
       const amount = parseEther("1");
 
       await expect(
-        turing.connect(owner).issueToken("invalid_codename", amount)
-      ).to.be.revertedWith("Codename not registered");
+        turing.write.issueToken(["invalid_codename", amount], { account: owner.account })
+      ).to.be.rejectedWith("Codename not registered");
     });
 
     it("Should correctly accumulate multiple token issuances", async function () {
       const { turing, owner, candidates } = await loadFixture(deployTuringFixture);
       const amount = parseEther("1");
-      
-      await turing.connect(owner).issueToken(candidates[0].codename, amount);
-      await turing.connect(owner).issueToken(candidates[0].codename, amount);
-      
-      expect(await turing.balanceOf(candidates[0].signer.address)).to.equal(parseEther("2"));
+
+      await turing.write.issueToken([candidates[0].codename, amount], { account: owner.account });
+      await turing.write.issueToken([candidates[0].codename, amount], { account: owner.account });
+
+      expect(await turing.read.balanceOf([candidates[0].address])).to.equal(parseEther("2"));
     });
 
     it("Should emit Transfer event on token issuance", async function () {
       const { turing, owner, candidates } = await loadFixture(deployTuringFixture);
       const amount = parseEther("1");
-      
-      await expect(turing.connect(owner).issueToken(candidates[0].codename, amount))
-        .to.emit(turing, "Transfer")
-        .withArgs(zeroAddress, candidates[0].signer.address, amount);
+
+      await turing.write.issueToken([candidates[0].codename, amount], { 
+        account: owner.account 
+      });
+
+      const publicClient = await hre.viem.getPublicClient();
+      const events: any[] = await publicClient.getContractEvents({
+          abi: ERC20ABI.abi,
+          eventName: 'Transfer',
+          strict: true,
+      }); // fuck viem and its shitty api
+
+      expect(events).to.have.lengthOf(1);
+
+      // Issue token transfer event
+      expect(events[0].args.from).to.equal(zeroAddress);
+      expect(events[0].args.to.toLowerCase()).to.equal(candidates[0].address.toLowerCase());
+      expect(events[0].args.value).to.equal(amount);
     });
   });
 
@@ -154,15 +167,9 @@ describe("Turing", function () {
       const { turing, candidates } = await loadFixture(deployTuringFixture);
       const amount = parseEther("1");
 
-      await turing
-        .connect(candidates[0].signer)
-        .vote(candidates[1].codename, amount);
-      expect(await turing.balanceOf(candidates[1].signer.address)).to.equal(
-        amount
-      );
-      expect(await turing.balanceOf(candidates[0].signer.address)).to.equal(
-        parseEther("0.2")
-      );
+      await turing.write.vote([candidates[1].codename, amount], { account: candidates[0].client.account });
+      expect(await turing.read.balanceOf([candidates[1].address])).to.equal(amount);
+      expect(await turing.read.balanceOf([candidates[0].address])).to.equal(parseEther("0.2"));
     });
 
     it("Should reject voting amount over 2 TTK", async function () {
@@ -170,10 +177,8 @@ describe("Turing", function () {
       const amount = parseEther("3");
 
       await expect(
-        turing
-          .connect(candidates[0].signer)
-          .vote(candidates[1].codename, amount)
-      ).to.be.revertedWith("Cannot vote more than 2 TTK");
+        turing.write.vote([candidates[1].codename, amount], { account: candidates[0].client.account })
+      ).to.be.rejectedWith("Cannot vote more than 2 TTK");
     });
 
     it("Should prevent voting for self", async function () {
@@ -181,36 +186,26 @@ describe("Turing", function () {
       const amount = parseEther("1");
 
       await expect(
-        turing
-          .connect(candidates[0].signer)
-          .vote(candidates[0].codename, amount)
-      ).to.be.revertedWith("Cannot vote for yourself");
+        turing.write.vote([candidates[0].codename, amount], { account: candidates[0].client.account })
+      ).to.be.rejectedWith("Cannot vote for yourself");
     });
 
     it("Should prevent double voting", async function () {
       const { turing, candidates } = await loadFixture(deployTuringFixture);
       const amount = parseEther("1");
 
-      await turing
-        .connect(candidates[0].signer)
-        .vote(candidates[1].codename, amount);
+      await turing.write.vote([candidates[1].codename, amount], { account: candidates[0].client.account });
       await expect(
-        turing
-          .connect(candidates[0].signer)
-          .vote(candidates[1].codename, amount)
-      ).to.be.revertedWith("Already voted for this candidate");
+        turing.write.vote([candidates[1].codename, amount], { account: candidates[0].client.account })
+      ).to.be.rejectedWith("Already voted for this candidate");
     });
 
     it("Should verify voter receives exactly 0.2 TTK reward", async function () {
       const { turing, candidates } = await loadFixture(deployTuringFixture);
       const amount = parseEther("1");
 
-      await turing
-        .connect(candidates[0].signer)
-        .vote(candidates[1].codename, amount);
-      expect(await turing.balanceOf(candidates[0].signer.address)).to.equal(
-        parseEther("0.2")
-      );
+      await turing.write.vote([candidates[1].codename, amount], { account: candidates[0].client.account });
+      expect(await turing.read.balanceOf([candidates[0].address])).to.equal(parseEther("0.2"));
     });
 
     it("Should reject voting with invalid codename", async function () {
@@ -218,101 +213,113 @@ describe("Turing", function () {
       const amount = parseEther("1");
 
       await expect(
-        turing.connect(candidates[0].signer).vote("invalid_codename", amount)
-      ).to.be.revertedWith("Codename not registered");
+        turing.write.vote(["invalid_codename", amount], { account: candidates[0].client.account })
+      ).to.be.rejectedWith("Codename not registered");
     });
 
     it("Should reject voting from non-candidate address", async function () {
+      const walletClients = await hre.viem.getWalletClients();
+      const [nonCandidate] = walletClients;
       const { turing, candidates } = await loadFixture(deployTuringFixture);
-      const [nonCandidate] = await hre.ethers.getSigners();
       const amount = parseEther("1");
-  
+
       await expect(
-        turing.connect(nonCandidate).vote(candidates[0].codename, amount)
-      ).to.be.revertedWith("Voter not found");
+        turing.write.vote([candidates[0].codename, amount], { account: nonCandidate.account })
+      ).to.be.rejectedWith("Voter not found");
     });
 
     it("Should emit Transfer events for both vote and reward", async function () {
       const { turing, candidates } = await loadFixture(deployTuringFixture);
       const amount = parseEther("1");
       const reward = parseEther("0.2");
+      
+      await turing.write.vote([candidates[1].codename, amount], { 
+        account: candidates[0].client.account 
+      });
 
-      await expect(turing.connect(candidates[0].signer).vote(candidates[1].codename, amount))
-        .to.emit(turing, "Transfer").withArgs(zeroAddress, candidates[1].signer.address, amount)
-        .and.to.emit(turing, "Transfer").withArgs(zeroAddress, candidates[0].signer.address, reward);
+      const publicClient = await hre.viem.getPublicClient();
+      const events: any[] = await publicClient.getContractEvents({
+          abi: ERC20ABI.abi,
+          eventName: 'Transfer',
+          strict: true,
+      }); // fuck viem and its shitty api
+
+      expect(events).to.have.lengthOf(2);
+
+      // Vote transfer event
+      expect(events[0].args.from).to.equal(zeroAddress);
+      expect(events[0].args.to.toLowerCase()).to.equal(candidates[1].address.toLowerCase());
+      expect(events[0].args.value).to.equal(amount);
+
+      // Reward transfer event
+      expect(events[1].args.from).to.equal(zeroAddress);
+      expect(events[1].args.to.toLowerCase()).to.equal(candidates[0].address.toLowerCase());
+      expect(events[1].args.value).to.equal(reward);
     });
   });
-  
+
   describe("Voting Control", function () {
     it("Should allow owner to stop voting", async function () {
-      const { turing, owner, candidates } = await loadFixture(
-        deployTuringFixture
-      );
+      const { turing, owner, candidates } = await loadFixture(deployTuringFixture);
 
-      await turing.connect(owner).votingOff();
-      expect(await turing.votingOpen()).to.be.false;
-      
+      await turing.write.votingOff({ account: owner.account });
+      expect(await turing.read.votingOpen()).to.be.false;
+
       await expect(
-        turing
-        .connect(candidates[0].signer)
-        .vote(candidates[1].codename, parseEther("1"))
-      ).to.be.revertedWith("Voting is closed");
+        turing.write.vote([candidates[1].codename, parseEther("1")], { account: candidates[0].client.account })
+      ).to.be.rejectedWith("Voting is closed");
     });
-    
+
     it("Should allow professor to control voting", async function () {
       const { turing, professor } = await loadFixture(deployTuringFixture);
-      
-      await turing.connect(professor).votingOff();
-      expect(await turing.votingOpen()).to.be.false;
-      
-      await turing.connect(professor).votingOn();
-      expect(await turing.votingOpen()).to.be.true;
+
+      await turing.write.votingOff({ account: professor.account });
+      expect(await turing.read.votingOpen()).to.be.false;
+
+      await turing.write.votingOn({ account: professor.account });
+      expect(await turing.read.votingOpen()).to.be.true;
     });
-    
+
     it("Should reject non-owner/non-professor voting control", async function () {
       const { turing, candidates } = await loadFixture(deployTuringFixture);
 
       await expect(
-        turing.connect(candidates[0].signer).votingOff()
-      ).to.be.revertedWith(
-        "Only the contract owner or the professor can close voting"
-      );
-      
+        turing.write.votingOff({ account: candidates[0].client.account })
+      ).to.be.rejectedWith("Only the contract owner or the professor can close voting");
+
       await expect(
-        turing.connect(candidates[0].signer).votingOn()
-      ).to.be.revertedWith(
-        "Only the contract owner or the professor can open voting"
-      );
+        turing.write.votingOn({ account: candidates[0].client.account })
+      ).to.be.rejectedWith("Only the contract owner or the professor can open voting");
     });
 
     it("Should reject voting when voting is closed", async function () {
       const { turing, owner, candidates } = await loadFixture(deployTuringFixture);
       const amount = parseEther("1");
 
-      await turing.connect(owner).votingOff();
+      await turing.write.votingOff({ account: owner.account });
       await expect(
-        turing.connect(candidates[0].signer).vote(candidates[1].codename, amount)
-      ).to.be.revertedWith("Voting is closed");
+        turing.write.vote([candidates[1].codename, amount], { account: candidates[0].client.account })
+      ).to.be.rejectedWith("Voting is closed");
     });
 
     it("Should allow voting after reopening", async function () {
       const { turing, owner, candidates } = await loadFixture(deployTuringFixture);
       const amount = parseEther("1");
-  
-      await turing.connect(owner).votingOff();
-      await turing.connect(owner).votingOn();
-      
+
+      await turing.write.votingOff({ account: owner.account });
+      await turing.write.votingOn({ account: owner.account });
+
       await expect(
-        turing.connect(candidates[0].signer).vote(candidates[1].codename, amount)
-      ).not.to.be.reverted;
+        turing.write.vote([candidates[1].codename, amount], { account: candidates[0].client.account })
+      ).not.to.be.rejected;
     });
   });
-  
+
   describe("Get Candidates Codenames", function () {
     it("Should return all codenames", async function () {
       const { turing, candidates } = await loadFixture(deployTuringFixture);
-      
-      const codenames = await turing.getCandidatesCodenames();
+
+      const codenames = await turing.read.getCandidatesCodenames();
       expect(codenames).to.have.lengthOf(candidates.length);
       candidates.forEach((candidate, i) => {
         expect(codenames[i]).to.equal(candidate.codename);
