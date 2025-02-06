@@ -62,7 +62,7 @@ describe("Turing", function () {
           professor.account.address, 
           [], 
           []
-        ])
+        ]) // @ts-ignore
       ).to.be.rejectedWith("Candidates list cannot be empty");
     });
 
@@ -75,7 +75,7 @@ describe("Turing", function () {
           professor.account.address,
           [candidate1.account.address],
           ["candidate1", "candidate2"],
-        ])
+        ]) // @ts-ignore
       ).to.be.rejectedWith("Candidates input length mismatch");
     });
 
@@ -88,7 +88,7 @@ describe("Turing", function () {
           professor.account.address,
           [candidate1.account.address, candidate2.account.address],
           ["same_codename", "same_codename"],
-        ])
+        ]) // @ts-ignore
       ).to.be.rejectedWith("Duplicate codename");
     });
   });
@@ -115,7 +115,7 @@ describe("Turing", function () {
       const amount = parseEther("1");
 
       await expect(
-        turing.write.issueToken([candidates[1].codename, amount], { account: candidates[0].client.account })
+        turing.write.issueToken([candidates[1].codename, amount], { account: candidates[0].client.account }) // @ts-ignore
       ).to.be.rejectedWith("Only the contract owner or the professor can issue tokens");
     });
 
@@ -124,7 +124,7 @@ describe("Turing", function () {
       const amount = parseEther("1");
 
       await expect(
-        turing.write.issueToken(["invalid_codename", amount], { account: owner.account })
+        turing.write.issueToken(["invalid_codename", amount], { account: owner.account }) // @ts-ignore
       ).to.be.rejectedWith("Codename not registered");
     });
 
@@ -177,7 +177,7 @@ describe("Turing", function () {
       const amount = parseEther("3");
 
       await expect(
-        turing.write.vote([candidates[1].codename, amount], { account: candidates[0].client.account })
+        turing.write.vote([candidates[1].codename, amount], { account: candidates[0].client.account }) // @ts-ignore
       ).to.be.rejectedWith("Cannot vote more than 2 TTK");
     });
 
@@ -186,7 +186,7 @@ describe("Turing", function () {
       const amount = parseEther("1");
 
       await expect(
-        turing.write.vote([candidates[0].codename, amount], { account: candidates[0].client.account })
+        turing.write.vote([candidates[0].codename, amount], { account: candidates[0].client.account }) // @ts-ignore
       ).to.be.rejectedWith("Cannot vote for yourself");
     });
 
@@ -196,7 +196,7 @@ describe("Turing", function () {
 
       await turing.write.vote([candidates[1].codename, amount], { account: candidates[0].client.account });
       await expect(
-        turing.write.vote([candidates[1].codename, amount], { account: candidates[0].client.account })
+        turing.write.vote([candidates[1].codename, amount], { account: candidates[0].client.account }) // @ts-ignore
       ).to.be.rejectedWith("Already voted for this candidate");
     });
 
@@ -213,7 +213,7 @@ describe("Turing", function () {
       const amount = parseEther("1");
 
       await expect(
-        turing.write.vote(["invalid_codename", amount], { account: candidates[0].client.account })
+        turing.write.vote(["invalid_codename", amount], { account: candidates[0].client.account }) // @ts-ignore
       ).to.be.rejectedWith("Codename not registered");
     });
 
@@ -224,7 +224,7 @@ describe("Turing", function () {
       const amount = parseEther("1");
 
       await expect(
-        turing.write.vote([candidates[0].codename, amount], { account: nonCandidate.account })
+        turing.write.vote([candidates[0].codename, amount], { account: nonCandidate.account }) // @ts-ignore
       ).to.be.rejectedWith("Voter not found");
     });
 
@@ -266,7 +266,7 @@ describe("Turing", function () {
       expect(await turing.read.votingOpen()).to.be.false;
 
       await expect(
-        turing.write.vote([candidates[1].codename, parseEther("1")], { account: candidates[0].client.account })
+        turing.write.vote([candidates[1].codename, parseEther("1")], { account: candidates[0].client.account }) // @ts-ignore
       ).to.be.rejectedWith("Voting is closed");
     });
 
@@ -284,11 +284,11 @@ describe("Turing", function () {
       const { turing, candidates } = await loadFixture(deployTuringFixture);
 
       await expect(
-        turing.write.votingOff({ account: candidates[0].client.account })
+        turing.write.votingOff({ account: candidates[0].client.account }) // @ts-ignore
       ).to.be.rejectedWith("Only the contract owner or the professor can close voting");
 
       await expect(
-        turing.write.votingOn({ account: candidates[0].client.account })
+        turing.write.votingOn({ account: candidates[0].client.account }) // @ts-ignore
       ).to.be.rejectedWith("Only the contract owner or the professor can open voting");
     });
 
@@ -298,7 +298,7 @@ describe("Turing", function () {
 
       await turing.write.votingOff({ account: owner.account });
       await expect(
-        turing.write.vote([candidates[1].codename, amount], { account: candidates[0].client.account })
+        turing.write.vote([candidates[1].codename, amount], { account: candidates[0].client.account }) // @ts-ignore
       ).to.be.rejectedWith("Voting is closed");
     });
 
@@ -308,21 +308,21 @@ describe("Turing", function () {
 
       await turing.write.votingOff({ account: owner.account });
       await turing.write.votingOn({ account: owner.account });
-
+      
       await expect(
-        turing.write.vote([candidates[1].codename, amount], { account: candidates[0].client.account })
+        turing.write.vote([candidates[1].codename, amount], { account: candidates[0].client.account }) // @ts-ignore
       ).not.to.be.rejected;
     });
   });
 
-  describe("Get Candidates Codenames", function () {
-    it("Should return all codenames", async function () {
+  describe("Get Candidates", function () {
+    it("Should return all candidates", async function () {
       const { turing, candidates } = await loadFixture(deployTuringFixture);
 
-      const codenames = await turing.read.getCandidatesCodenames();
-      expect(codenames).to.have.lengthOf(candidates.length);
+      const cands = await turing.read.getCandidates();
+      expect(cands[0]).to.have.lengthOf(candidates.length);
       candidates.forEach((candidate, i) => {
-        expect(codenames[i]).to.equal(candidate.codename);
+        expect(cands[0][i]).to.equal(candidate.codename);
       });
     });
   });

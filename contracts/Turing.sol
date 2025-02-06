@@ -79,11 +79,14 @@ contract Turing is ERC20 {
         }
     }
 
-    function getCandidatesCodenames() public view returns (string[] memory) {
+    function getCandidates() public view returns (string[] memory, uint256[] memory) {
         string[] memory codenames = new string[](_candidates.length);
-        for (uint256 i = 0; i < _candidates.length; i++)
+        uint256[] memory saTurings = new uint256[](_candidates.length);
+        for (uint256 i = 0; i < _candidates.length; i++) {
             codenames[i] = _candidates[i].codename;
-        return codenames;
+            saTurings[i] = balanceOf(_candidates[i].addrss);
+        }
+        return (codenames, saTurings);
     }
 
     function issueToken(string calldata codename, uint256 saTurings) public {
