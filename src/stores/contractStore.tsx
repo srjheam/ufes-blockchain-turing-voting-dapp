@@ -11,7 +11,7 @@ interface ContractState {
 
 const useContractStore = create<ContractState>()(
   persist(
-    (set) => ({
+    () => ({
       address:
         process.env.NEXT_PUBLIC_CONTRACT_ADDRESS?.toLowerCase() as `0x${string}`,
       currentClientCodename: null,

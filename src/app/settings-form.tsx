@@ -15,7 +15,7 @@ import {
 import useContractStore from "@/stores/contractStore";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
-import { Moon, MoonIcon, Sun } from "lucide-react";
+import { Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import {
   DropdownMenu,
@@ -54,7 +54,7 @@ const SettingsForm = () => {
         title: "Settings updated",
         description: "Your settings have been saved successfully.",
       });
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to update settings. Please try again.",

@@ -82,16 +82,27 @@ const CandidateList: React.FC = () => {
   }, [contractInfo.address]); // re-fetch candidates when contract address changes
 
   useEffect(() => {
-    if (!contractInfo.address || contractInfo.status != "ready") return;
     const watchEvent = async () => {
       const { publicClient } = await import("@/web3/clients");
+
+      const contract = await getContractViem({
+        address: contractInfo.address,
+        abi: turingAbi,
+        client: publicClient,
+      });
+
+      console.log("watching event");
 
       const unwatch = publicClient.watchEvent({
         address: contractInfo.address,
         event: turingAbi
           .filter((item) => item.type === "event")
           .find((item) => item.name === "Transfer"),
-        onLogs: () => setContract(),
+        onLogs: () => {
+          console.log("event triggered");
+          setContract();
+          return Promise.resolve();
+        }
       });
 
       return unwatch;

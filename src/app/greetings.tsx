@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react";
+import React from "react";
 import useContractStore from "@/stores/contractStore";
 import SettingsForm from "@/app/settings-form";
 

@@ -58,10 +58,10 @@ const CandidateCard: React.FC<CandidateCardProps> = ({ candidate }) => {
 
       setDrawerOpen(false);
 
-      await new Promise((resolve) => setTimeout(resolve, 5000));
-      window.location.reload();
+      //await new Promise((resolve) => setTimeout(resolve, 5000));
+      //window.location.reload();
 
-    } catch (error) {
+    } catch {
       toast({
         title: "Uh oh! Something went wrong",
         description: "You cannot vote for this candidate",
