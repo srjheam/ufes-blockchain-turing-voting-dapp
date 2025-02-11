@@ -3,7 +3,7 @@
 import turingAbi from "@/web3/abi";
 import useContractStore from "@/stores/contractStore";
 import React, { useEffect } from "react";
-import CandidateCard from "./CandidateCard";
+import CandidateCard from "@/app/candidate-card";
 import { Candidate } from "@/types/Candidate";
 import { getContract as getContractViem } from "viem";
 
@@ -56,6 +56,8 @@ const CandidateList: React.FC = () => {
   const contractInfo = useContractStore();
 
   const setContract = async () => {
+    useContractStore.setState({ status: "loading" });
+
     console.log("setting contract");
 
     if (!contractInfo.address) {

@@ -15,6 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Candidate } from "@/types/Candidate";
 import turingAbi from "@/web3/abi";
+import { useToast } from "@/hooks/use-toast";
 
 interface CandidateCardProps {
   candidate: Candidate;
@@ -23,6 +24,8 @@ interface CandidateCardProps {
 const CandidateCard: React.FC<CandidateCardProps> = ({ candidate }) => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [saTuringAmount, setSaTuringAmount] = useState("");
+  const { toast } = useToast();
+
   const contractInfo = useContractStore();
 
   const handleVoteSubmit = async (e: React.FormEvent) => {
@@ -34,7 +37,7 @@ const CandidateCard: React.FC<CandidateCardProps> = ({ candidate }) => {
       const contract = getContract({
         address: contractInfo.address,
         abi: turingAbi,
-        client: walletClient
+        client: walletClient,
       });
       const account = await walletClient.requestAddresses();
 
@@ -47,15 +50,24 @@ const CandidateCard: React.FC<CandidateCardProps> = ({ candidate }) => {
           account: account[0],
         }
       );
+      
+      toast({
+        title: "Sucess",
+        description: "Vote submitted successfully",
+      });
+
+      setDrawerOpen(false);
 
       await new Promise((resolve) => setTimeout(resolve, 5000));
       window.location.reload();
 
-      setDrawerOpen(false);
     } catch (error) {
-      console.error(error);
-    }
-    finally {
+      toast({
+        title: "Uh oh! Something went wrong",
+        description: "You cannot vote for this candidate",
+        variant: "destructive",
+      });
+    } finally {
       setDrawerOpen(false);
     }
   };
