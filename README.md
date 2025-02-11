@@ -42,6 +42,12 @@ You may check it out on [Vercel](https://ignite-platform-sand.vercel.app/).
     pnpm hardhat compile
     ```
 
+    1.1. Run Wagmi CLI
+
+    ```bash
+    pnpm wagmi generate
+    ```
+
 2. Run tests
 
     ```bash
