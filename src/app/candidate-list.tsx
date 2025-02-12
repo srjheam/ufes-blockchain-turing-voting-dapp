@@ -84,13 +84,7 @@ const CandidateList: React.FC = () => {
   useEffect(() => {
     const watchEvent = async () => {
       const { publicClient } = await import("@/web3/clients");
-
-      const contract = await getContractViem({
-        address: contractInfo.address,
-        abi: turingAbi,
-        client: publicClient,
-      });
-
+      
       console.log("watching event");
 
       const unwatch = publicClient.watchEvent({

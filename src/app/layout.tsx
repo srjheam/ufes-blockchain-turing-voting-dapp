@@ -29,6 +29,7 @@ export default function RootLayout({
       <head>
         <meta name="apple-mobile-web-app-title" content="Turing Voting" />
         <link rel="shortcut icon" type="image/x-icon" href="icon.ico"/>
+        <link rel="manifest" crossOrigin="use-credentials" href="manifest.json" /> 
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
