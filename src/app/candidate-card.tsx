@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Candidate } from "@/types/Candidate";
 import turingAbi from "@/web3/abi";
 import { useToast } from "@/hooks/use-toast";
+import { Loader2 } from "lucide-react";
 
 interface CandidateCardProps {
   candidate: Candidate;
@@ -23,6 +24,7 @@ interface CandidateCardProps {
 
 const CandidateCard: React.FC<CandidateCardProps> = ({ candidate }) => {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [processingVote, setProcessingVote] = useState(false);
   const [saTuringAmount, setSaTuringAmount] = useState("");
   const { toast } = useToast();
 
@@ -31,6 +33,7 @@ const CandidateCard: React.FC<CandidateCardProps> = ({ candidate }) => {
   const handleVoteSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!contractInfo.address) return;
+    setProcessingVote(true);
     try {
       const { walletClient } = await import("@/web3/clients");
 
@@ -50,17 +53,11 @@ const CandidateCard: React.FC<CandidateCardProps> = ({ candidate }) => {
           account: account[0],
         }
       );
-      
+
       toast({
         title: "Sucess",
         description: "Vote submitted successfully",
       });
-
-      setDrawerOpen(false);
-
-      //await new Promise((resolve) => setTimeout(resolve, 5000));
-      //window.location.reload();
-
     } catch {
       toast({
         title: "Uh oh! Something went wrong",
@@ -69,6 +66,7 @@ const CandidateCard: React.FC<CandidateCardProps> = ({ candidate }) => {
       });
     } finally {
       setDrawerOpen(false);
+      setProcessingVote(false);
     }
   };
 
@@ -79,7 +77,7 @@ const CandidateCard: React.FC<CandidateCardProps> = ({ candidate }) => {
           <div className="w-full justify-start border border-gray-200 rounded-lg p-4 flex items-center space-x-4">
             <h3 className="text-lg font-semibold">{candidate.codename}</h3>
             <p className="text-sm">
-              {candidate.saTuringAmmount * 10 ** -18} votes
+              {Math.round(candidate.saTuringAmmount * 10 ** -18 * 100) / 100} votes
             </p>
           </div>
         </DrawerTrigger>
@@ -101,15 +99,30 @@ const CandidateCard: React.FC<CandidateCardProps> = ({ candidate }) => {
                 type="number"
                 step="any"
                 value={saTuringAmount}
+                min="0"
+                max="2"
                 onChange={(e) => setSaTuringAmount(e.target.value)}
                 required
               />
             </div>
             <div className="flex justify-end space-x-2">
-              <Button type="submit">Submit Vote</Button>
-              <Button variant="secondary" onClick={() => setDrawerOpen(false)}>
-                Cancel
-              </Button>
+              {processingVote && (
+                <Button disabled className="w-full" >
+                  <Loader2 className="animate-spin" />
+                  Please wait
+                </Button>
+              )}
+              {!processingVote && (
+                <>
+                  <Button type="submit">Submit Vote</Button>
+                  <Button
+                    variant="secondary"
+                    onClick={() => setDrawerOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                </>
+              )}
             </div>
           </form>
         </DrawerContent>

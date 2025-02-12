@@ -89,7 +89,10 @@ const SettingsForm = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="codename">Your Codename</Label>
+              <Label htmlFor="codename">
+                Your Codename
+                <p className="text-sm text-muted-foreground">It will be hidden from the voting list</p>
+              </Label>
               <Input
                 id="codename"
                 name="codename"
